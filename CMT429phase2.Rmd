@@ -1,0 +1,280 @@
+---
+title: "R Notebook"
+output:
+  html_notebook: default
+  pdf_document: default
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+plot(cars)
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+```{r}
+#Set your working directory to the location where your csv file is.
+getwd()
+```
+
+
+```{r}
+setwd("C:/Users/Admin/desktop")
+
+```
+```{r}
+#We will be using tidyverse which is a library in R to help with analysis.
+#Install tidyverse
+#install.packages("tidyverse")
+#load tidyverse into current session
+library(tidyverse)
+```
+```{r}
+#Lets retrieve our file from our working directory and have a look at it.A
+#Creating a data frame df
+df<-read.csv("CARS_1.csv")
+df
+
+```
+```{r}
+#Lets check datatypes and change where need be
+glimpse(df)
+```
+
+
+```{r}
+#Lets convert the body_type, fuel_type and transmission_type column into a factor since they entail categorical variables
+df$body_type<-as.factor(df$body_type)
+df$fuel_type<-as.factor(df$fuel_type)
+df$transmission_type<-as.factor(df$transmission_type)
+```
+```{r}
+#Lets do data cleaning
+#Lets start by adding a new column by the name Average to the table
+df<-cbind(df,Average_Price=((df$starting_price+df$ending_price)/2))
+#check if the column average price is added
+df
+```
+```{r}
+#Lets check for null values
+is.na(df)
+
+```
+```{r}
+#Or for simplicity,we can use
+df%>%
+	filter(!complete.cases(.))
+```
+```{r}
+
+#Lets check for duplicates in respect to car names
+df$car_name[duplicated(df$car_name)]
+```
+```{r}
+#Since we have duplicates,we should omit them by
+df2<-distinct(df)
+#This creates a new dataframe with only unique values
+df
+```
+```{r}
+#Lets go to summarizing the data
+summary(df2)
+```
+```{r}
+#Since we have zeros we should be careful with them
+df2%>%
+	filter(engine_displacement==0 | no_cylinder==0 | fuel_tank_capacity==0 | max_torque_rpm==0 | max_power_rp ==0)
+```
+```{r}
+#lets get the summary after we set aside the zeros
+df2%>%
+	filter(engine_displacement!=0 & no_cylinder!=0 & fuel_tank_capacity!=0 & max_torque_rpm!=0 & max_power_rp!=0)%>%
+	summary()
+```
+```{r}
+#Lets look for car tank capacity vs the maximum power bhp
+cor(df$max_power_bhp,df$fuel_tank_capacity)
+```
+```{r}
+# Since the correlation of 0.1511087 is close to 0 we can say its almost negligible but we can not rule it out
+
+df2%>%
+	filter(df2$max_power_bhp>0 & df2$fuel_tank_capacity>0)%>%
+	ggplot(aes(x=max_power_bhp,y=fuel_tank_capacity))+
+		geom_point()+
+		geom_smooth()+
+		labs(x="MAXIMUM POWER(bhp)",y="FUEL TANK CAPACITY",title="MAXIMUM POWER VS FUEL TANK CAPACITY")
+
+
+```
+```{r}
+#Lets look for car tank capacity vs the maximum power rp
+cor(df$max_power_rp,df$fuel_tank_capacity)
+```
+```{r}
+#A correlation of 0.3303761 means we have a slight or moderate correlation between the two values
+
+df2%>%
+	filter(df2$max_power_rp>0 & df2$fuel_tank_capacity>0)%>%
+	ggplot(aes(x=max_power_rp,y=fuel_tank_capacity))+
+		geom_point()+
+		geom_smooth()+
+		labs(x="MAXIMUM POWER(rp)",y="FUEL TANK CAPACITY",title="MAXIMUM POWER VS FUEL TANK CAPACITY")
+
+```
+```{r}
+#Lets look for car tank capacity vs the maximum torque nm
+cor(df$max_torque_nm,df$fuel_tank_capacity)
+```
+```{r}
+#A correlation of 0.094 means we have little to no correlation between the two values
+df2%>%
+	filter(df2$max_torque_nm>0 & df2$fuel_tank_capacity>0)%>%
+	ggplot(aes(x=max_torque_nm,y=fuel_tank_capacity))+
+		geom_point()+
+		geom_smooth()+
+		labs(x="max_torque_nm",y="FUEL TANK CAPACITY",title="MAXIMUM TORQUE VS FUEL TANK CAPACITY")
+```
+```{r}
+#The most popular Body Type and car transmission
+df3<-rename(df,Body_Type=body_type)
+df3%>%
+	group_by(Body_Type)%>%
+	summarise(Minimum_Price=min(starting_price),
+			Average_Price=mean(Average_Price),
+			Maximum_Price=max(ending_price))
+```
+```{r}
+df3%>%
+	ggplot(aes(x=fct_infreq(Body_Type)))+
+			geom_bar(fill="#2E2869")+
+			theme_bw()+
+			labs(x="Body Type",y="Number of Cars", title="THE NUMBER OF CARS IN RESPECT TO BODY TYPE")
+
+```
+```{r}
+df2%>%
+		group_by(transmission_type)%>%
+		summarise(Minimum_Price=min(starting_price),
+			Average_Price= mean(Average_Price),
+			Maximum_Price=max(ending_price))
+```
+```{r}
+ggplot(data=df2,aes(x=fct_infreq(transmission_type)))+
+	geom_bar(fill="#512E5F")+
+	labs(x="Transmission Type", y="NUMBER OF CARS",title="NUMBER OF CARS PER TRANSMISSION TYPE")
+
+```
+```{r}
+addmargins(table(df2$body_type,df2$transmission_type))
+```
+```{r}
+ggplot(df,aes(x=body_type,y=reviews_count))+
+	geom_col()+
+	facet_wrap(~transmission_type)
+
+```
+```{r}
+#Does engine displacement affect the torque and power of a car
+df3<-df2%>%
+	filter(df2$engine_displacement>0 & df2$max_torque_rpm>0)
+
+	cor(df3$engine_displacement,df3$max_torque_rpm)
+```
+```{r}
+#A correlation of 0.2457222 means we have a slight or moderate correlation between the two values
+	df3%>%
+	ggplot(aes(x=engine_displacement,y=max_torque_rpm))+
+		geom_point()+
+		geom_smooth()+
+		labs(x="engine_displacement",y="max_torque_rpm",title="ENGINE DISPLACEMENT VS MAX TORQUE rpm")
+
+```
+```{r}
+cor(df3$engine_displacement,df3$max_torque_nm)
+```
+```{r}
+df3%>% 
+	ggplot(aes(x=engine_displacement,y=max_torque_nm))+
+		geom_point()+
+		geom_smooth()+
+		labs(x="ENGINE DISPLACEMENT",y="MAXIMUM TORQUE nm",title="MAXIMUM TORQUE VS THE ENGINE DISPLACEMENT")
+
+
+```
+```{r}
+df2%>% 
+	group_by(fuel_type)%>%
+	summarise(Minimum_Price=min(starting_price),
+			Average_Cost=mean(Average_Price),
+			Maximum_Price=max(ending_price))
+```
+```{r}
+ggplot(data=df2, aes(x=fuel_type,y=(Average_Price/1000000)))+
+	geom_col()+
+	labs(x="FUEL TYPE",y="AVERAGE COST (in millions)",title="Average Cost of a car per Body Type")
+
+```
+```{r}
+df4<-df2%>%
+	filter(df2$engine_displacement & df2$Average_Price)  
+
+```
+```{r}
+cor(df4$engine_displacement,df4$Average_Price)
+```
+```{r}
+df%>%
+	filter(df$engine_displacement>0 & df$Average_Price>0)%>%
+	ggplot(aes(x=engine_displacement,y=Average_Price/1000000))+
+	geom_point()+
+  geom_smooth() +
+  labs(x="ENGINE DIPLACEMENT",y="AVERAGE COST (in millions)",title="Average Cost vs Engine diplacment")
+
+
+```
+```{r}
+df5<- df2%>%
+	filter(df2$no_cylinder>0 & df2$Average_Price>0) 
+cor(df5$no_cylinder,df5$Average_Price)
+```
+```{r}
+df2%>%
+  filter(df2$no_cylinder>0 & df2$Average_Price>0)%>%
+  ggplot(aes(x=no_cylinder,y=Average_Price/1000000))+
+  geom_point()+
+  labs(x="NO CYLINDERS",y="AVERAGE COST (in millions)",title="Average Cost vs No of cylinders")
+
+
+```
+```{r}
+#Does the review of a car affect its price
+
+#Lets plot a bar graph so that we can see the total number of vehicles given a particular rate
+df2%>%
+	ggplot(aes(x=rating))+
+		geom_bar(fill="#B5371C")+
+		theme_bw()+
+		labs(x="Car Rating",y=NULL,title="THE NUMBER OF CARS IN RESPECT TO THE RATES")
+```
+```{r}
+
+model<-lm(Average_Price~engine_displacement,data=df2) 
+summary(model)
+
+
+```
+```{r}
+plot(model, which=3)
+```
+
+```{r}
+new_data <- data.frame(engine_displacement=c(1500,1200.1680))
+predict(model, new_data)
+```
